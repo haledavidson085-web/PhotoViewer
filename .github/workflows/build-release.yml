@@ -72,6 +72,22 @@ jobs:
 
           Compress-Archive -Path "$publishPath\*" -DestinationPath $archivePath
           "archive_path=$archivePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "publish_path=$publishPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Smoke test startup
+        if: matrix.rid == 'win-x64'
+        shell: pwsh
+        run: |
+          $executable = Join-Path "${{ steps.package.outputs.publish_path }}" "PhotoViewer.exe"
+          $process = Start-Process -FilePath $executable -PassThru -WindowStyle Hidden
+          Start-Sleep -Seconds 3
+
+          if ($process.HasExited) {
+            throw "PhotoViewer exited during startup with code $($process.ExitCode)."
+          }
+
+          Stop-Process -Id $process.Id
+          $process.WaitForExit()
 
       - name: Upload package
         uses: actions/upload-artifact@v7

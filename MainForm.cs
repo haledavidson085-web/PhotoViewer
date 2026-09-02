@@ -98,14 +98,26 @@ internal sealed class MainForm : Form
         var view = new ToolStripMenuItem("&View");
         view.DropDownItems.Add(new ToolStripMenuItem("Zoom &in", null, (_, _) => canvas.ZoomIn(), Keys.Control | Keys.Oemplus));
         view.DropDownItems.Add(new ToolStripMenuItem("Zoom &out", null, (_, _) => canvas.ZoomOut(), Keys.Control | Keys.OemMinus));
-        view.DropDownItems.Add(new ToolStripMenuItem("&Fit to window", null, (_, _) => canvas.Fit(), Keys.F));
-        view.DropDownItems.Add(new ToolStripMenuItem("&Actual size", null, (_, _) => canvas.ActualSize(), Keys.D1));
+        view.DropDownItems.Add(new ToolStripMenuItem("&Fit to window", null, (_, _) => canvas.Fit())
+        {
+            ShortcutKeyDisplayString = "F"
+        });
+        view.DropDownItems.Add(new ToolStripMenuItem("&Actual size", null, (_, _) => canvas.ActualSize())
+        {
+            ShortcutKeyDisplayString = "1"
+        });
         view.DropDownItems.Add(new ToolStripSeparator());
         view.DropDownItems.Add(new ToolStripMenuItem("&Full screen", null, (_, _) => ToggleFullScreen(), Keys.F11));
 
         var image = new ToolStripMenuItem("&Image");
-        image.DropDownItems.Add(new ToolStripMenuItem("&Previous", null, (_, _) => Navigate(-1), Keys.Left));
-        image.DropDownItems.Add(new ToolStripMenuItem("&Next", null, (_, _) => Navigate(1), Keys.Right));
+        image.DropDownItems.Add(new ToolStripMenuItem("&Previous", null, (_, _) => Navigate(-1))
+        {
+            ShortcutKeyDisplayString = "Left"
+        });
+        image.DropDownItems.Add(new ToolStripMenuItem("&Next", null, (_, _) => Navigate(1))
+        {
+            ShortcutKeyDisplayString = "Right"
+        });
         image.DropDownItems.Add(new ToolStripSeparator());
         image.DropDownItems.Add(new ToolStripMenuItem("Rotate &left", null, (_, _) => Rotate(RotateFlipType.Rotate270FlipNone), Keys.Control | Keys.L));
         image.DropDownItems.Add(new ToolStripMenuItem("Rotate &right", null, (_, _) => Rotate(RotateFlipType.Rotate90FlipNone), Keys.Control | Keys.R));
@@ -320,20 +332,40 @@ internal sealed class MainForm : Form
 
     private void HandleKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.Escape && fullScreen)
+        bool handled = true;
+
+        switch (e.KeyCode)
         {
-            ToggleFullScreen();
-            e.Handled = true;
+            case Keys.Escape when e.Modifiers == Keys.None && fullScreen:
+                ToggleFullScreen();
+                break;
+            case Keys.F when e.Modifiers == Keys.None:
+                canvas.Fit();
+                break;
+            case Keys.D1 or Keys.NumPad1 when e.Modifiers == Keys.None:
+                canvas.ActualSize();
+                break;
+            case Keys.Left when e.Modifiers == Keys.None:
+                Navigate(-1);
+                break;
+            case Keys.Right when e.Modifiers == Keys.None:
+                Navigate(1);
+                break;
+            case Keys.Add or Keys.Oemplus when !e.Control && !e.Alt:
+                canvas.ZoomIn();
+                break;
+            case Keys.Subtract or Keys.OemMinus when !e.Control && !e.Alt:
+                canvas.ZoomOut();
+                break;
+            default:
+                handled = false;
+                break;
         }
-        else if (e.KeyCode is Keys.Add or Keys.Oemplus && !e.Control)
+
+        if (handled)
         {
-            canvas.ZoomIn();
             e.Handled = true;
-        }
-        else if (e.KeyCode is Keys.Subtract or Keys.OemMinus && !e.Control)
-        {
-            canvas.ZoomOut();
-            e.Handled = true;
+            e.SuppressKeyPress = true;
         }
     }
 
