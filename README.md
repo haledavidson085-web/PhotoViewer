@@ -10,6 +10,8 @@ A lightweight Windows photo viewer built with WinForms and .NET 10. It uses only
 - Mouse-wheel zoom and click-drag panning
 - Rotate images left or right without changing the source file
 - Full-screen mode and an automatic slideshow
+- A dark interface with a custom application icon and high-contrast controls
+- An icon-and-text toolbar that keeps common actions easy to recognize
 - Status details for filename, dimensions, folder position, and zoom
 - Loads images without keeping source files locked
 

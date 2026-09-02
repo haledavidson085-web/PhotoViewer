@@ -33,43 +33,77 @@ internal sealed class MainForm : Form
         ClientSize = new Size(1100, 720);
         KeyPreview = true;
         AllowDrop = true;
-        BackColor = canvas.BackColor;
+        BackColor = AppTheme.WindowBackground;
+        ForeColor = AppTheme.Foreground;
+
+        if (Environment.ProcessPath is string executablePath)
+            Icon = Icon.ExtractAssociatedIcon(executablePath);
 
         var menu = BuildMenu();
+        var stripRenderer = AppTheme.CreateRenderer();
+        ConfigureStrip(menu, stripRenderer);
         var toolbar = new ToolStrip
         {
             GripStyle = ToolStripGripStyle.Hidden,
-            Padding = new Padding(6, 3, 6, 3),
-            ImageScalingSize = new Size(20, 20)
+            Padding = new Padding(8, 4, 8, 4),
+            ImageScalingSize = new Size(20, 20),
+            BackColor = AppTheme.Surface,
+            ForeColor = AppTheme.Foreground,
+            Renderer = stripRenderer,
+            CanOverflow = true,
+            LayoutStyle = ToolStripLayoutStyle.HorizontalStackWithOverflow
         };
 
-        toolbar.Items.Add(MakeButton("Open", (_, _) => OpenImage(), "Open an image (Ctrl+O)"));
-        toolbar.Items.Add(MakeButton("Folder", (_, _) => OpenFolder(), "Open a folder (Ctrl+Shift+O)"));
+        toolbar.Items.Add(MakeButton("Open", ToolbarIconKind.OpenImage, (_, _) => OpenImage(), "Open an image (Ctrl+O)"));
+        toolbar.Items.Add(MakeButton("Folder", ToolbarIconKind.OpenFolder, (_, _) => OpenFolder(), "Open a folder (Ctrl+Shift+O)"));
         toolbar.Items.Add(new ToolStripSeparator());
-        previousButton = MakeButton("Previous", (_, _) => Navigate(-1), "Previous photo (Left)");
-        nextButton = MakeButton("Next", (_, _) => Navigate(1), "Next photo (Right)");
+        previousButton = MakeButton("Previous", ToolbarIconKind.Previous, (_, _) => Navigate(-1), "Previous photo (Left)");
+        nextButton = MakeButton("Next", ToolbarIconKind.Next, (_, _) => Navigate(1), "Next photo (Right)");
         toolbar.Items.Add(previousButton);
         toolbar.Items.Add(nextButton);
         toolbar.Items.Add(new ToolStripSeparator());
-        toolbar.Items.Add(MakeButton("Zoom -", (_, _) => canvas.ZoomOut(), "Zoom out (-)"));
-        toolbar.Items.Add(MakeButton("Zoom +", (_, _) => canvas.ZoomIn(), "Zoom in (+)"));
-        toolbar.Items.Add(MakeButton("Fit", (_, _) => canvas.Fit(), "Fit to window (F)"));
-        toolbar.Items.Add(MakeButton("100%", (_, _) => canvas.ActualSize(), "Actual size (1)"));
+        toolbar.Items.Add(MakeButton("Zoom out", ToolbarIconKind.ZoomOut, (_, _) => canvas.ZoomOut(), "Zoom out (-)"));
+        toolbar.Items.Add(MakeButton("Zoom in", ToolbarIconKind.ZoomIn, (_, _) => canvas.ZoomIn(), "Zoom in (+)"));
+        toolbar.Items.Add(MakeButton("Fit", ToolbarIconKind.Fit, (_, _) => canvas.Fit(), "Fit to window (F)"));
+        toolbar.Items.Add(MakeButton("100%", ToolbarIconKind.ActualSize, (_, _) => canvas.ActualSize(), "Actual size (1)"));
         toolbar.Items.Add(new ToolStripSeparator());
-        toolbar.Items.Add(MakeButton("Rotate left", (_, _) => Rotate(RotateFlipType.Rotate270FlipNone), "Rotate left"));
-        toolbar.Items.Add(MakeButton("Rotate right", (_, _) => Rotate(RotateFlipType.Rotate90FlipNone), "Rotate right"));
+        toolbar.Items.Add(MakeButton("Rotate left", ToolbarIconKind.RotateLeft, (_, _) => Rotate(RotateFlipType.Rotate270FlipNone), "Rotate left (Ctrl+L)"));
+        toolbar.Items.Add(MakeButton("Rotate right", ToolbarIconKind.RotateRight, (_, _) => Rotate(RotateFlipType.Rotate90FlipNone), "Rotate right (Ctrl+R)"));
         toolbar.Items.Add(new ToolStripSeparator());
-        slideshowButton = MakeButton("Slideshow", (_, _) => ToggleSlideshow(), "Start slideshow (F5)");
+        slideshowButton = MakeButton("Slideshow", ToolbarIconKind.Slideshow, (_, _) => ToggleSlideshow(), "Start slideshow (F5)");
         slideshowButton.CheckOnClick = true;
         toolbar.Items.Add(slideshowButton);
 
-        var status = new StatusStrip();
+        var status = new StatusStrip
+        {
+            BackColor = AppTheme.Surface,
+            ForeColor = AppTheme.Foreground,
+            Renderer = stripRenderer,
+            SizingGrip = false,
+            Padding = new Padding(8, 2, 8, 2)
+        };
         status.Items.AddRange([fileStatus, dimensionsStatus, positionStatus, zoomStatus]);
 
-        Controls.Add(canvas);
-        Controls.Add(toolbar);
-        Controls.Add(menu);
-        Controls.Add(status);
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = AppTheme.WindowBackground,
+            ColumnCount = 1,
+            RowCount = 4,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(menu, 0, 0);
+        layout.Controls.Add(toolbar, 0, 1);
+        layout.Controls.Add(canvas, 0, 2);
+        layout.Controls.Add(status, 0, 3);
+
+        Controls.Add(layout);
         MainMenuStrip = menu;
 
         canvas.ViewChanged += (_, _) => UpdateStatus();
@@ -128,11 +162,52 @@ internal sealed class MainForm : Form
         return menu;
     }
 
-    private static ToolStripButton MakeButton(string text, EventHandler onClick, string tooltip)
+    protected override void OnHandleCreated(EventArgs e)
     {
-        var button = new ToolStripButton(text) { DisplayStyle = ToolStripItemDisplayStyle.Text, ToolTipText = tooltip };
+        base.OnHandleCreated(e);
+        AppTheme.ApplyDarkTitleBar(this);
+    }
+
+    private static ToolStripButton MakeButton(string text, ToolbarIconKind icon, EventHandler onClick, string tooltip)
+    {
+        var button = new ToolStripButton(text)
+        {
+            DisplayStyle = ToolStripItemDisplayStyle.ImageAndText,
+            Image = ToolbarIconFactory.Create(icon),
+            ImageAlign = ContentAlignment.MiddleCenter,
+            TextAlign = ContentAlignment.MiddleCenter,
+            TextImageRelation = TextImageRelation.ImageBeforeText,
+            ToolTipText = tooltip,
+            ForeColor = AppTheme.Foreground,
+            Margin = new Padding(1, 0, 1, 0),
+            Padding = new Padding(4, 2, 5, 2)
+        };
         button.Click += onClick;
         return button;
+    }
+
+    private static void ConfigureStrip(MenuStrip menu, ToolStripRenderer renderer)
+    {
+        menu.BackColor = AppTheme.Surface;
+        menu.ForeColor = AppTheme.Foreground;
+        menu.Renderer = renderer;
+        menu.Padding = new Padding(8, 2, 8, 2);
+        ApplyMenuTheme(menu.Items, renderer);
+    }
+
+    private static void ApplyMenuTheme(ToolStripItemCollection items, ToolStripRenderer renderer)
+    {
+        foreach (ToolStripItem item in items)
+        {
+            item.ForeColor = AppTheme.Foreground;
+            if (item is not ToolStripMenuItem menuItem)
+                continue;
+
+            menuItem.DropDown.BackColor = AppTheme.Surface;
+            menuItem.DropDown.ForeColor = AppTheme.Foreground;
+            menuItem.DropDown.Renderer = renderer;
+            ApplyMenuTheme(menuItem.DropDownItems, renderer);
+        }
     }
 
     private void OpenImage()

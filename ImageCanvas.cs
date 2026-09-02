@@ -18,7 +18,8 @@ internal sealed class ImageCanvas : Control
     public ImageCanvas()
     {
         DoubleBuffered = true;
-        BackColor = Color.FromArgb(24, 26, 31);
+        BackColor = AppTheme.CanvasBackground;
+        ForeColor = AppTheme.Foreground;
         SetStyle(ControlStyles.Selectable, true);
         TabStop = true;
     }
@@ -81,7 +82,7 @@ internal sealed class ImageCanvas : Control
             using var font = new Font(Font.FontFamily, 16, FontStyle.Regular);
             const string message = "Drop a photo here or press Ctrl+O";
             var size = e.Graphics.MeasureString(message, font);
-            using var brush = new SolidBrush(Color.FromArgb(150, 160, 174));
+            using var brush = new SolidBrush(AppTheme.MutedForeground);
             e.Graphics.DrawString(message, font, brush,
                 (ClientSize.Width - size.Width) / 2,
                 (ClientSize.Height - size.Height) / 2);
@@ -93,13 +94,17 @@ internal sealed class ImageCanvas : Control
         float height = (float)(image.Height * scale);
         float x = (ClientSize.Width - width) / 2f + panOffset.X;
         float y = (ClientSize.Height - height) / 2f + panOffset.Y;
+        var imageBounds = new RectangleF(x, y, width, height);
 
+        DrawTransparencyGrid(e.Graphics, imageBounds);
         e.Graphics.InterpolationMode = scale < 1
             ? InterpolationMode.HighQualityBicubic
             : InterpolationMode.NearestNeighbor;
         e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
         e.Graphics.CompositingQuality = CompositingQuality.HighQuality;
-        e.Graphics.DrawImage(image, x, y, width, height);
+        e.Graphics.DrawImage(image, imageBounds);
+        using var border = new Pen(AppTheme.Border);
+        e.Graphics.DrawRectangle(border, x, y, width, height);
     }
 
     protected override void OnResize(EventArgs e)
@@ -175,5 +180,33 @@ internal sealed class ImageCanvas : Control
         fitToWindow = false;
         Invalidate();
         ViewChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void DrawTransparencyGrid(Graphics graphics, RectangleF bounds)
+    {
+        var visible = RectangleF.Intersect(bounds, ClientRectangle);
+        if (visible.Width <= 0 || visible.Height <= 0)
+            return;
+
+        const float tileSize = 10f;
+        using var first = new SolidBrush(Color.FromArgb(38, 43, 53));
+        using var second = new SolidBrush(Color.FromArgb(47, 53, 65));
+        var state = graphics.Save();
+        graphics.SetClip(visible);
+
+        float startX = (float)Math.Floor(visible.Left / tileSize) * tileSize;
+        float startY = (float)Math.Floor(visible.Top / tileSize) * tileSize;
+        for (float y = startY; y < visible.Bottom; y += tileSize)
+        {
+            for (float x = startX; x < visible.Right; x += tileSize)
+            {
+                int column = (int)Math.Floor((x - bounds.Left) / tileSize);
+                int row = (int)Math.Floor((y - bounds.Top) / tileSize);
+                graphics.FillRectangle(((column + row) & 1) == 0 ? first : second,
+                    x, y, tileSize, tileSize);
+            }
+        }
+
+        graphics.Restore(state);
     }
 }
