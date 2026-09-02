@@ -65,3 +65,5 @@ To publish a permanent GitHub Release containing all four packages and a `SHA256
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+GitHub automatically generates the release notes from merged pull requests. The repository's `.github/release.yml` groups entries into breaking changes, features, fixes, documentation, dependencies, maintenance, and other changes. Apply the `skip-changelog` or `ignore-for-release` label to omit a pull request from the notes.
