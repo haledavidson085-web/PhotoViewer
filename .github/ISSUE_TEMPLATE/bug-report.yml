@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible problem with Photo Viewer.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Photo Viewer. Please provide enough detail to reproduce the problem.
+
+  - type: input
+    id: version
+    attributes:
+      label: Photo Viewer version
+      description: Enter the release tag, commit, or workflow artifact version.
+      placeholder: v1.0.0 or commit 7426962
+    validations:
+      required: true
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2, build 26100
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - x64 self-contained
+        - x64 framework-dependent
+        - ARM64 self-contained
+        - ARM64 framework-dependent
+        - Built from source
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Image details and logs
+      description: Include the image format, dimensions, error text, screenshots, or logs. Do not upload sensitive photos.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I removed private or sensitive information from attachments.
+          required: true

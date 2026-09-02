@@ -1,0 +1,61 @@
+name: Publish wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "wiki/**"
+      - .github/workflows/publish-wiki.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Check Wiki availability
+        id: wiki
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $enabled = gh api "repos/$env:GITHUB_REPOSITORY" --jq .has_wiki
+          "enabled=$enabled" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          if ($enabled -ne "true") {
+            Write-Warning "GitHub Wiki is unavailable for this repository. The version-controlled pages remain under wiki/."
+          }
+
+      - name: Publish Markdown pages
+        if: steps.wiki.outputs.enabled == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $wikiPath = Join-Path $env:RUNNER_TEMP "PhotoViewer.wiki"
+          $wikiUrl = "https://x-access-token:$env:GH_TOKEN@github.com/$env:GITHUB_REPOSITORY.wiki.git"
+
+          git clone --depth 1 $wikiUrl $wikiPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to clone the GitHub Wiki. Confirm that Wikis are enabled and initialized."
+          }
+
+          Get-ChildItem wiki -Filter *.md | Copy-Item -Destination $wikiPath -Force
+          git -C $wikiPath config user.name "github-actions[bot]"
+          git -C $wikiPath config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C $wikiPath add --all
+
+          git -C $wikiPath diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Output "Wiki is already up to date."
+            exit 0
+          }
+
+          git -C $wikiPath commit -m "Sync wiki from $env:GITHUB_SHA"
+          git -C $wikiPath push origin HEAD

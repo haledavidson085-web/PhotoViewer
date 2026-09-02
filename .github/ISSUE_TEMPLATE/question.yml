@@ -1,0 +1,28 @@
+name: Question
+description: Ask for help using or building Photo Viewer.
+title: "[Question]: "
+labels:
+  - question
+  - needs-triage
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Explain what you are trying to do and where you are stuck.
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What have you tried?
+      description: Include commands, relevant output, and documentation you have already checked.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and the wiki first.
+          required: true

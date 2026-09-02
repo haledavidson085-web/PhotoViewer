@@ -67,3 +67,11 @@ git push origin v1.0.0
 ```
 
 GitHub automatically generates the release notes from merged pull requests. The repository's `.github/release.yml` groups entries into breaking changes, features, fixes, documentation, dependencies, maintenance, and other changes. Apply the `skip-changelog` or `ignore-for-release` label to omit a pull request from the notes.
+
+## Repository automation
+
+- Structured forms label bug reports, feature requests, and questions for triage.
+- Pull requests receive a checklist and labels based on the files changed.
+- Inactive issues and pull requests receive a warning before automatic closure.
+- Dependabot checks GitHub Actions for updates every week.
+- Markdown under `wiki/` is automatically published when GitHub Wiki support is available; otherwise the workflow preserves the version-controlled pages without failing CI.

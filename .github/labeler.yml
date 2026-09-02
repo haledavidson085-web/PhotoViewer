@@ -1,0 +1,33 @@
+application:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.cs"
+          - "*.csproj"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - README.md
+          - "**/*.md"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/dependabot.yml
+          - ".github/workflows/**"
+
+issues:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/ISSUE_TEMPLATE/**"
+
+wiki:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "wiki/**"
+
+release:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/release.yml
+          - .github/workflows/build-release.yml
