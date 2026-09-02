@@ -49,3 +49,19 @@ dotnet run -- "C:\Pictures\photo.jpg"
 | Rotate left / right | `Ctrl+L` / `Ctrl+R` |
 
 Mouse controls: use the wheel to zoom, drag to pan, and double-click to switch between fit and actual size.
+
+## Download packages
+
+Each GitHub Actions run produces Windows x64 and ARM64 packages in two forms:
+
+- **Framework-dependent:** smaller download; requires the .NET 10 Desktop Runtime.
+- **Self-contained:** larger download; includes the .NET runtime and does not require a separate installation.
+
+Both package types use a single-file executable and are available from the workflow run's **Artifacts** section for 14 days.
+
+To publish a permanent GitHub Release containing all four packages and a `SHA256SUMS.txt` file, push a version tag:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
