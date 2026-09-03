@@ -229,8 +229,12 @@ internal sealed class MainForm : Form
     private void OpenSettings()
     {
         using var dialog = new SettingsDialog(settings);
+        dialog.PreviewSettingsChanged += (_, _) => ApplySettings(dialog.SelectedSettings);
         if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            ApplySettings(settings);
             return;
+        }
 
         settings = dialog.SelectedSettings;
         ApplySettings(settings);

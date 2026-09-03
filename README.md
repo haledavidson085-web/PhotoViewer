@@ -12,7 +12,7 @@ A lightweight Windows photo viewer built with WinForms and .NET 10. It uses only
 - Full-screen mode and an automatic slideshow
 - A dark interface with a custom application icon and high-contrast controls
 - An icon-and-text toolbar that keeps common actions easy to recognize
-- Persistent settings for the application font, theme colors, and slideshow interval
+- Persistent settings with live previews for the application font, theme colors, and slideshow interval
 - Status details for filename, dimensions, folder position, and zoom
 - Loads images without keeping source files locked
 

@@ -60,6 +60,8 @@ internal sealed class SettingsDialog : Form
 
     public AppSettings SelectedSettings => workingSettings.Clone().Normalize();
 
+    public event EventHandler? PreviewSettingsChanged;
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -96,7 +98,10 @@ internal sealed class SettingsDialog : Form
         };
         intervalPanel.Controls.Add(slideshowInterval);
         slideshowInterval.ValueChanged += (_, _) =>
+        {
             workingSettings.SlideshowIntervalSeconds = (int)slideshowInterval.Value;
+            OnPreviewSettingsChanged();
+        };
         intervalPanel.Controls.Add(new Label { Text = "seconds", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(4, 6, 0, 0) });
         panel.Controls.Add(intervalPanel, 1, 1);
         return panel;
@@ -146,6 +151,7 @@ internal sealed class SettingsDialog : Form
             workingSettings = AppSettings.Default;
             UpdateSettingControls();
             ApplyDialogTheme();
+            OnPreviewSettingsChanged();
         };
         actions.Controls.Add(save);
         actions.Controls.Add(cancel);
@@ -161,6 +167,9 @@ internal sealed class SettingsDialog : Form
         var button = MakeButton(string.Empty);
         button.Width = 148;
         button.Tag = propertyName;
+        button.AutoSize = false;
+        button.FlatStyle = FlatStyle.Flat;
+        button.UseVisualStyleBackColor = false;
         button.Click += (_, _) => ChooseColor(propertyName);
         colorButtons[propertyName] = button;
         panel.Controls.Add(button, 1, row);
@@ -186,6 +195,7 @@ internal sealed class SettingsDialog : Form
         workingSettings.FontStyle = (int)dialog.Font.Style;
         UpdateSettingControls();
         ApplyDialogTheme();
+        OnPreviewSettingsChanged();
     }
 
     private void ChooseColor(string propertyName)
@@ -203,6 +213,7 @@ internal sealed class SettingsDialog : Form
         property.SetValue(workingSettings, dialog.Color.ToArgb());
         UpdateColorButtons();
         ApplyDialogTheme();
+        OnPreviewSettingsChanged();
     }
 
     private void UpdateSettingControls()
@@ -290,6 +301,8 @@ internal sealed class SettingsDialog : Form
 
     private static bool IsLight(Color color) =>
         (color.R * 299 + color.G * 587 + color.B * 114) / 1000 >= 150;
+
+    private void OnPreviewSettingsChanged() => PreviewSettingsChanged?.Invoke(this, EventArgs.Empty);
 
     private static string StyleSuffix(System.Drawing.FontStyle style) =>
         style == System.Drawing.FontStyle.Regular ? string.Empty : $", {style}";
