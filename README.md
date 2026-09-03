@@ -12,6 +12,7 @@ A lightweight Windows photo viewer built with WinForms and .NET 10. It uses only
 - Full-screen mode and an automatic slideshow
 - A dark interface with a custom application icon and high-contrast controls
 - An icon-and-text toolbar that keeps common actions easy to recognize
+- Persistent settings for the application font, theme colors, and slideshow interval
 - Status details for filename, dimensions, folder position, and zoom
 - Loads images without keeping source files locked
 
@@ -49,6 +50,7 @@ dotnet run -- "C:\Pictures\photo.jpg"
 | Leave full screen | `Esc` |
 | Start / stop slideshow | `F5` |
 | Rotate left / right | `Ctrl+L` / `Ctrl+R` |
+| Open settings | `Ctrl+,` |
 
 Mouse controls: use the wheel to zoom, drag to pan, and double-click to switch between fit and actual size.
 

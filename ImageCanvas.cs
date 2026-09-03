@@ -24,6 +24,13 @@ internal sealed class ImageCanvas : Control
         TabStop = true;
     }
 
+    public void ApplyTheme()
+    {
+        BackColor = AppTheme.CanvasBackground;
+        ForeColor = AppTheme.Foreground;
+        Invalidate();
+    }
+
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Image? Image
@@ -189,8 +196,8 @@ internal sealed class ImageCanvas : Control
             return;
 
         const float tileSize = 10f;
-        using var first = new SolidBrush(Color.FromArgb(38, 43, 53));
-        using var second = new SolidBrush(Color.FromArgb(47, 53, 65));
+        using var first = new SolidBrush(AppTheme.CheckerDark);
+        using var second = new SolidBrush(AppTheme.CheckerLight);
         var state = graphics.Save();
         graphics.SetClip(visible);
 

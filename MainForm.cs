@@ -17,8 +17,14 @@ internal sealed class MainForm : Form
     private readonly ToolStripButton previousButton;
     private readonly ToolStripButton nextButton;
     private readonly ToolStripButton slideshowButton;
+    private readonly MenuStrip menu;
+    private readonly ToolStrip toolbar;
+    private readonly StatusStrip status;
+    private readonly TableLayoutPanel layout;
     private readonly System.Windows.Forms.Timer slideshowTimer = new() { Interval = 3000 };
     private readonly List<string> files = [];
+    private AppSettings settings;
+    private Font? applicationFont;
     private int currentIndex = -1;
     private Image? currentImage;
     private bool fullScreen;
@@ -27,6 +33,8 @@ internal sealed class MainForm : Form
 
     public MainForm(string? initialPath)
     {
+        settings = AppSettings.Load();
+        AppTheme.Apply(settings);
         Text = "Photo Viewer";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(720, 480);
@@ -39,10 +47,10 @@ internal sealed class MainForm : Form
         if (Environment.ProcessPath is string executablePath)
             Icon = Icon.ExtractAssociatedIcon(executablePath);
 
-        var menu = BuildMenu();
+        menu = BuildMenu();
         var stripRenderer = AppTheme.CreateRenderer();
         ConfigureStrip(menu, stripRenderer);
-        var toolbar = new ToolStrip
+        toolbar = new ToolStrip
         {
             GripStyle = ToolStripGripStyle.Hidden,
             Padding = new Padding(8, 4, 8, 4),
@@ -74,7 +82,7 @@ internal sealed class MainForm : Form
         slideshowButton.CheckOnClick = true;
         toolbar.Items.Add(slideshowButton);
 
-        var status = new StatusStrip
+        status = new StatusStrip
         {
             BackColor = AppTheme.Surface,
             ForeColor = AppTheme.Foreground,
@@ -84,7 +92,7 @@ internal sealed class MainForm : Form
         };
         status.Items.AddRange([fileStatus, dimensionsStatus, positionStatus, zoomStatus]);
 
-        var layout = new TableLayoutPanel
+        layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             BackColor = AppTheme.WindowBackground,
@@ -110,10 +118,15 @@ internal sealed class MainForm : Form
         slideshowTimer.Tick += (_, _) => Navigate(1);
         DragEnter += HandleDragEnter;
         DragDrop += HandleDragDrop;
-        FormClosed += (_, _) => currentImage?.Dispose();
+        FormClosed += (_, _) =>
+        {
+            currentImage?.Dispose();
+            applicationFont?.Dispose();
+        };
         KeyDown += HandleKeyDown;
         Shown += (_, _) => OpenInitialPath(initialPath);
 
+        ApplySettings(settings);
         UpdateNavigationState();
         UpdateStatus();
     }
@@ -142,6 +155,8 @@ internal sealed class MainForm : Form
         });
         view.DropDownItems.Add(new ToolStripSeparator());
         view.DropDownItems.Add(new ToolStripMenuItem("&Full screen", null, (_, _) => ToggleFullScreen(), Keys.F11));
+        view.DropDownItems.Add(new ToolStripSeparator());
+        view.DropDownItems.Add(new ToolStripMenuItem("&Settings...", null, (_, _) => OpenSettings(), Keys.Control | Keys.Oemcomma));
 
         var image = new ToolStripMenuItem("&Image");
         image.DropDownItems.Add(new ToolStripMenuItem("&Previous", null, (_, _) => Navigate(-1))
@@ -179,6 +194,7 @@ internal sealed class MainForm : Form
             TextImageRelation = TextImageRelation.ImageBeforeText,
             ToolTipText = tooltip,
             ForeColor = AppTheme.Foreground,
+            Tag = icon,
             Margin = new Padding(1, 0, 1, 0),
             Padding = new Padding(4, 2, 5, 2)
         };
@@ -207,6 +223,87 @@ internal sealed class MainForm : Form
             menuItem.DropDown.ForeColor = AppTheme.Foreground;
             menuItem.DropDown.Renderer = renderer;
             ApplyMenuTheme(menuItem.DropDownItems, renderer);
+        }
+    }
+
+    private void OpenSettings()
+    {
+        using var dialog = new SettingsDialog(settings);
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+            return;
+
+        settings = dialog.SelectedSettings;
+        ApplySettings(settings);
+        if (!settings.TrySave(out string? error))
+        {
+            MessageBox.Show(this, $"The settings could not be saved. They will remain active until the application closes.\n\n{error}",
+                "Photo Viewer", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void ApplySettings(AppSettings newSettings)
+    {
+        newSettings.Normalize();
+        AppTheme.Apply(newSettings);
+
+        Font newFont = newSettings.CreateFont();
+        Font? oldFont = applicationFont;
+        applicationFont = newFont;
+        Font = newFont;
+        menu.Font = newFont;
+        toolbar.Font = newFont;
+        status.Font = newFont;
+
+        BackColor = AppTheme.WindowBackground;
+        ForeColor = AppTheme.Foreground;
+        layout.BackColor = AppTheme.WindowBackground;
+        canvas.ApplyTheme();
+        slideshowTimer.Interval = newSettings.SlideshowIntervalSeconds * 1000;
+
+        var renderer = AppTheme.CreateRenderer();
+        ConfigureStrip(menu, renderer);
+        ConfigureToolStrip(toolbar, renderer);
+        ConfigureToolStrip(status, renderer);
+        RefreshToolbarIcons();
+        if (IsHandleCreated)
+            AppTheme.ApplyDarkTitleBar(this);
+        Invalidate(true);
+        oldFont?.Dispose();
+    }
+
+    private static void ConfigureToolStrip(ToolStrip strip, ToolStripRenderer renderer)
+    {
+        strip.BackColor = AppTheme.Surface;
+        strip.ForeColor = AppTheme.Foreground;
+        strip.Renderer = renderer;
+        ApplyToolStripItemTheme(strip.Items, renderer);
+    }
+
+    private static void ApplyToolStripItemTheme(ToolStripItemCollection items, ToolStripRenderer renderer)
+    {
+        foreach (ToolStripItem item in items)
+        {
+            item.ForeColor = AppTheme.Foreground;
+            if (item is ToolStripMenuItem menuItem)
+            {
+                menuItem.DropDown.BackColor = AppTheme.Surface;
+                menuItem.DropDown.ForeColor = AppTheme.Foreground;
+                menuItem.DropDown.Renderer = renderer;
+                ApplyToolStripItemTheme(menuItem.DropDownItems, renderer);
+            }
+        }
+    }
+
+    private void RefreshToolbarIcons()
+    {
+        foreach (ToolStripItem item in toolbar.Items)
+        {
+            if (item.Tag is not ToolbarIconKind icon)
+                continue;
+
+            Image? oldImage = item.Image;
+            item.Image = ToolbarIconFactory.Create(icon);
+            oldImage?.Dispose();
         }
     }
 
