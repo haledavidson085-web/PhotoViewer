@@ -28,6 +28,7 @@ internal sealed class MainForm : Form
     private int currentIndex = -1;
     private Image? currentImage;
     private bool fullScreen;
+    private bool updateCheckInProgress;
     private FormBorderStyle savedBorderStyle;
     private FormWindowState savedWindowState;
 
@@ -124,7 +125,15 @@ internal sealed class MainForm : Form
             applicationFont?.Dispose();
         };
         KeyDown += HandleKeyDown;
-        Shown += (_, _) => OpenInitialPath(initialPath);
+        Shown += async (_, _) =>
+        {
+            OpenInitialPath(initialPath);
+            if (settings.AutomaticallyCheckForUpdates &&
+                Environment.GetEnvironmentVariable("PHOTOVIEWER_DISABLE_UPDATE_CHECK") != "1" &&
+                (settings.LastUpdateCheckUtc is null ||
+                 DateTimeOffset.UtcNow - settings.LastUpdateCheckUtc.Value >= TimeSpan.FromDays(1)))
+                await CheckForUpdatesAsync(userInitiated: false);
+        };
 
         ApplySettings(settings);
         UpdateNavigationState();
@@ -173,7 +182,11 @@ internal sealed class MainForm : Form
         image.DropDownItems.Add(new ToolStripSeparator());
         image.DropDownItems.Add(new ToolStripMenuItem("&Slideshow", null, (_, _) => ToggleSlideshow(), Keys.F5));
 
-        menu.Items.AddRange([file, view, image]);
+        var help = new ToolStripMenuItem("&Help");
+        help.DropDownItems.Add(new ToolStripMenuItem("Check for &updates...", null,
+            async (_, _) => await CheckForUpdatesAsync(userInitiated: true)));
+
+        menu.Items.AddRange([file, view, image, help]);
         return menu;
     }
 
@@ -273,6 +286,71 @@ internal sealed class MainForm : Form
             AppTheme.ApplyDarkTitleBar(this);
         Invalidate(true);
         oldFont?.Dispose();
+    }
+
+    private async Task CheckForUpdatesAsync(bool userInitiated)
+    {
+        if (updateCheckInProgress)
+            return;
+
+        updateCheckInProgress = true;
+        UseWaitCursor = true;
+        try
+        {
+            if (userInitiated)
+                fileStatus.Text = "Checking for updates…";
+
+            AvailableUpdate? update = await UpdateService.CheckForUpdateAsync();
+            if (IsDisposed)
+                return;
+
+            if (update is null)
+            {
+                if (userInitiated)
+                {
+                    MessageBox.Show(this, $"Photo Viewer {UpdateService.CurrentVersion.ToString(3)} is up to date.",
+                        "Check for updates", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                return;
+            }
+
+            DialogResult choice = MessageBox.Show(this,
+                $"Photo Viewer {update.Version.ToString(3)} is available.\n\n" +
+                "Download and install it now? The application will restart automatically.",
+                "Update available", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (choice != DialogResult.Yes)
+                return;
+
+            var progress = new Progress<int>(percentage =>
+                fileStatus.Text = $"Downloading Photo Viewer {update.Version.ToString(3)}… {percentage}%");
+            string stagedExecutable = await UpdateService.DownloadAndStageAsync(update, progress);
+            fileStatus.Text = "Installing update…";
+            UpdateService.LaunchUpdater(stagedExecutable);
+            Close();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Update check failed: {ex}");
+            if (userInitiated && !IsDisposed)
+            {
+                MessageBox.Show(this, $"Photo Viewer could not check for updates.\n\n{ex.Message}",
+                    "Check for updates", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        finally
+        {
+            if (!userInitiated)
+            {
+                settings.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
+                settings.TrySave(out _);
+            }
+            updateCheckInProgress = false;
+            if (!IsDisposed)
+            {
+                UseWaitCursor = false;
+                UpdateStatus();
+            }
+        }
     }
 
     private static void ConfigureToolStrip(ToolStrip strip, ToolStripRenderer renderer)

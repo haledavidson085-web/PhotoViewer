@@ -10,6 +10,12 @@ internal sealed class SettingsDialog : Form
         Width = 72,
         TextAlign = HorizontalAlignment.Right
     };
+    private readonly CheckBox automaticUpdates = new()
+    {
+        Text = "Check automatically when Photo Viewer starts",
+        AutoSize = true,
+        Anchor = AnchorStyles.Left
+    };
     private readonly Dictionary<string, Button> colorButtons = [];
     private AppSettings workingSettings;
     private Font? previewFont;
@@ -104,6 +110,14 @@ internal sealed class SettingsDialog : Form
         };
         intervalPanel.Controls.Add(new Label { Text = "seconds", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(4, 6, 0, 0) });
         panel.Controls.Add(intervalPanel, 1, 1);
+
+        panel.Controls.Add(MakeLabel("Application updates"), 0, 2);
+        automaticUpdates.CheckedChanged += (_, _) =>
+        {
+            workingSettings.AutomaticallyCheckForUpdates = automaticUpdates.Checked;
+            OnPreviewSettingsChanged();
+        };
+        panel.Controls.Add(automaticUpdates, 1, 2);
         return panel;
     }
 
@@ -221,6 +235,7 @@ internal sealed class SettingsDialog : Form
         using Font font = workingSettings.CreateFont();
         fontValue.Text = $"{font.Name}, {font.SizeInPoints:0.#} pt{StyleSuffix(font.Style)}";
         slideshowInterval.Value = Math.Clamp(workingSettings.SlideshowIntervalSeconds, 1, 60);
+        automaticUpdates.Checked = workingSettings.AutomaticallyCheckForUpdates;
         UpdateColorButtons();
     }
 

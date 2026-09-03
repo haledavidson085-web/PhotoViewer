@@ -13,6 +13,7 @@ A lightweight Windows photo viewer built with WinForms and .NET 10. It uses only
 - A dark interface with a custom application icon and high-contrast controls
 - An icon-and-text toolbar that keeps common actions easy to recognize
 - Persistent settings with live previews for the application font, theme colors, and slideshow interval
+- Secure self-updates from GitHub Releases, with an optional automatic startup check
 - Status details for filename, dimensions, folder position, and zoom
 - Loads images without keeping source files locked
 
@@ -62,6 +63,10 @@ Each GitHub Actions run produces Windows x64 and ARM64 packages in two forms:
 - **Self-contained:** larger download; includes the .NET runtime and does not require a separate installation.
 
 Both package types use a single-file executable and are available from the workflow run's **Artifacts** section for 14 days.
+
+## Application updates
+
+Photo Viewer checks GitHub Releases at most once per day by default. Disable the startup check under **View → Settings**, or run a check at any time with **Help → Check for updates**. Updates use the self-contained package for the current architecture and are installed only after the archive matches the published `SHA256SUMS.txt` checksum.
 
 To publish a permanent GitHub Release containing all four packages and a `SHA256SUMS.txt` file, push a version tag:
 

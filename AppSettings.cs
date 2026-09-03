@@ -16,6 +16,8 @@ internal sealed class AppSettings
     public int AccentArgb { get; set; } = Color.FromArgb(72, 199, 255).ToArgb();
     public int SecondaryAccentArgb { get; set; } = Color.FromArgb(151, 103, 255).ToArgb();
     public int SlideshowIntervalSeconds { get; set; } = 3;
+    public bool AutomaticallyCheckForUpdates { get; set; } = true;
+    public DateTimeOffset? LastUpdateCheckUtc { get; set; }
 
     public static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),

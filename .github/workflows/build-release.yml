@@ -78,6 +78,7 @@ jobs:
         if: matrix.rid == 'win-x64'
         shell: pwsh
         run: |
+          $env:PHOTOVIEWER_DISABLE_UPDATE_CHECK = "1"
           $executable = Join-Path "${{ steps.package.outputs.publish_path }}" "PhotoViewer.exe"
           $process = Start-Process -FilePath $executable -PassThru -WindowStyle Hidden
           Start-Sleep -Seconds 3
