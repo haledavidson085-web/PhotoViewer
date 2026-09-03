@@ -79,3 +79,7 @@ GitHub automatically generates the release notes from merged pull requests. The 
 - Inactive issues and pull requests receive a warning before automatic closure.
 - Dependabot checks GitHub Actions for updates every week.
 - Markdown under `wiki/` is automatically published when GitHub Wiki support is available; otherwise the workflow preserves the version-controlled pages without failing CI.
+
+## Security and license
+
+Report security vulnerabilities privately by following [SECURITY.md](SECURITY.md). Photo Viewer is available under the [MIT License](LICENSE).
